@@ -324,14 +324,7 @@ namespace Gif.Components
 			NeuQuant nq = new NeuQuant(pixels, len, sample);
 			// initialize quantizer
 			colorTab = nq.Process(); // create reduced palette
-			// convert map from BGR to RGB
-//			for (int i = 0; i < colorTab.Length; i += 3) 
-//			{
-//				byte temp = colorTab[i];
-//				colorTab[i] = colorTab[i + 2];
-//				colorTab[i + 2] = temp;
-//				usedEntry[i / 3] = false;
-//			}
+
 			// map image pixels to new palette
 			int k = 0;
 			for (int i = 0; i < nPix; i++) 
@@ -349,8 +342,8 @@ namespace Gif.Components
 			// get closest match to transparent color if specified
 			if (transparent != Color.Empty ) 
 			{
-				transIndex = FindClosest(transparent);
-			}
+				transIndex = nq.Map(transparent.B, transparent.G, transparent.R);
+            }
 		}
 	
 		/**
