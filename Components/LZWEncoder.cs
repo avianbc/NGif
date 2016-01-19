@@ -282,20 +282,10 @@ namespace Gif.Components
 		//----------------------------------------------------------------------------
 		private int NextPixel() 
 		{
-			if (remaining == 0)
-				return EOF;
+            int upperBound = pixAry.GetUpperBound(0);
 
-			--remaining;
-
-			int temp = curPixel + 1;
-			if ( temp < pixAry.GetUpperBound( 0 ))
-			{
-				byte pix = pixAry[curPixel++];
-
-				return pix & 0xff;
-			}
-			return 0xff;
-		}
+            return (curPixel <= upperBound) ? (pixAry[curPixel++] & 0xff) : EOF;
+        }
 	
 		void Output(int code, Stream outs)
 		{
