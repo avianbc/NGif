@@ -389,7 +389,7 @@ namespace Gif.Components
 				name = name.Trim().ToLower();
 				status = Read( new FileInfo( name ).OpenRead() );
 			} 
-			catch (IOException e) 
+			catch (IOException) 
 			{
 				status = STATUS_OPEN_ERROR;
 			}
@@ -572,7 +572,7 @@ namespace Gif.Components
 			{
 				curByte = inStream.ReadByte();
 			} 
-			catch (IOException e) 
+			catch (IOException) 
 			{
 				status = STATUS_FORMAT_ERROR;
 			}
@@ -601,7 +601,7 @@ namespace Gif.Components
 						n += count;
 					}
 				} 
-				catch (IOException e) 
+				catch (IOException) 
 				{
 				}
 
@@ -629,7 +629,7 @@ namespace Gif.Components
 			{
 				n = inStream.Read(c, 0, c.Length );
 			} 
-			catch (IOException e) 
+			catch (IOException) 
 			{
 			}
 			if (n < nbytes) 
@@ -646,7 +646,7 @@ namespace Gif.Components
 					int r = ((int) c[j++]) & 0xff;
 					int g = ((int) c[j++]) & 0xff;
 					int b = ((int) c[j++]) & 0xff;
-					tab[i++] = ( int ) ( 0xff000000 | (r << 16) | (g << 8) | b );
+					tab[i++] = (int) (0xff000000 | (r << 16) | (g << 8) | b );
 				}
 			}
 			return tab;
@@ -878,9 +878,6 @@ namespace Gif.Components
 			lastRect = new Rectangle(ix, iy, iw, ih);
 			lastImage = image;
 			lastBgColor = bgColor;
-			//		int dispose = 0;
-			bool transparency = false;
-			int delay = 0;
 			lct = null;
 		}
 
