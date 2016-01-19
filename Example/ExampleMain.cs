@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using Gif.Components;
 
 namespace Example
@@ -15,7 +16,11 @@ namespace Example
 			String [] imageFilePaths = new String[]{"c:\\01.png","c:\\02.png","c:\\03.png"}; 
 			String outputFilePath = "c:\\test.gif";
 			AnimatedGifEncoder e = new AnimatedGifEncoder();
-			e.Start( outputFilePath );
+            
+            // read file as memorystream
+		    byte[] fileBytes = File.ReadAllBytes(outputFilePath);
+            MemoryStream memStream = new MemoryStream(fileBytes);
+            e.Start(memStream);
 			e.SetDelay(500);
 			//-1:no repeat,0:always repeat
 			e.SetRepeat(0);
