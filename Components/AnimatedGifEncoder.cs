@@ -134,6 +134,70 @@ namespace Gif.Components
 		{
 			transparent = c;
 		}
+
+        // [] RGB index (assumes pico-8 palette).
+        public bool AddFrame(Byte[] im)
+        {
+            if ((im == null) || !started)
+            {
+                return false;
+            }
+            bool ok = true;
+            try
+            {
+                System.Diagnostics.Debug.Assert(sizeSet, "Attempting to add frame before size has been set.");
+//                image = im;
+//                GetImagePixels(); // convert to correct format if necessary
+                //pixels=im;
+                indexedPixels=im;
+                //AnalyzePixelsFast(); // build color table & map pixels
+                colorTab = new byte[]
+                {
+                   0,0,0,
+                   29,43,83,    // Dark Blue
+                   126,37,83,   // Dark Purple
+                   0,135,81,    // Dark Green
+                   171,82,54,   // Brown
+                   95,87,79,    // Dark Grey
+                   194,195,199, // Light Grey
+                   255,241,232, // White
+                   255,0,77,    // Red
+                   255,163,0,   // Orange
+                   255,236,39,  // Yellow
+                   0,228,54,    // Green
+                   41,173,255,  // Blue
+                   131,118,156, // Indigo
+                   255,119,168, // Pink
+                   255,204,170  // Peach
+                };
+                colorDepth = 8;
+                palSize = 7;
+                if (firstFrame)
+                {
+                    WriteLSD(); // logical screen descriptior
+                    WritePalette(); // global color table
+                    if (repeat >= 0)
+                    {
+                        // use NS app extension to indicate reps
+                        WriteNetscapeExt();
+                    }
+                }
+                WriteGraphicCtrlExt(); // write graphic control extension
+                WriteImageDesc(); // image descriptor
+                if (!firstFrame)
+                {
+                    WritePalette(); // local color table
+                }
+                WritePixels(); // encode and write pixel data
+                firstFrame = false;
+            }
+            catch (IOException)
+            {
+                ok = false;
+            }
+
+            return ok;
+        }
 	
 		/**
 		 * Adds next GIF frame.  The frame is not written immediately, but is
@@ -343,6 +407,77 @@ namespace Gif.Components
         public MemoryStream Output()
         {
             return ms;
+        }
+
+        /**
+          * Analyzes image colors and creates color map.
+          */
+        protected void AnalyzePixelsFast()
+        {
+            int len = pixels.Length;
+            int nPix = len / 3;
+            indexedPixels = new byte[nPix];
+            //NeuQuant nq = new NeuQuant(pixels, len, sample);
+            // initialize quantizer
+            //colorTab = nq.Process(); // create reduced palette
+            // convert map from BGR to RGB
+            //			for (int i = 0; i < colorTab.Length; i += 3) 
+            //			{
+            //				byte temp = colorTab[i];
+            //				colorTab[i] = colorTab[i + 2];
+            //				colorTab[i + 2] = temp;
+            //				usedEntry[i / 3] = false;
+            //			}
+            // map image pixels to new palette
+
+            colorTab = new byte[]
+            {
+               0,0,0,
+               29,43,83,    // Dark Blue
+               126,37,83,   // Dark Purple
+               0,135,81,    // Dark Green
+               171,82,54,   // Brown
+               95,87,79,    // Dark Grey
+               194,195,199, // Light Grey
+               255,241,232, // White
+               255,0,77,    // Red
+               255,163,0,   // Orange
+               255,236,39,  // Yellow
+               0,228,54,    // Green
+               41,173,255,  // Blue
+               131,118,156, // Indigo
+               255,119,168, // Pink
+               255,204,170  // Peach
+            };
+            int k = 0;
+            for (int i = 0; i < nPix; i++)
+            {
+                //int index =
+                //    nq.Map(pixels[k++] & 0xff,
+                //    pixels[k++] & 0xff,
+                //    pixels[k++] & 0xff);
+                int index = 0;
+                for (int c = 0; c < colorTab.Length; c+=3)
+                {
+                    if (pixels[k] == colorTab[c] && pixels[k + 1] == colorTab[c+1] && pixels[k + 2] == colorTab[c+2])
+                    {
+                        break;
+                    }
+                    index++;
+                }
+                k += 3;
+                //usedEntry[index] = true;
+                indexedPixels[i] = (byte)index;
+            }
+            pixels = null;
+            colorDepth = 8;
+            palSize = 7;
+            // get closest match to transparent color if specified
+            if (transparent != Color.Empty)
+            {
+                //transIndex = FindClosest(transparent);
+                //transIndex = nq.Map(transparent.B, transparent.G, transparent.R);
+            }
         }
 
         /**
