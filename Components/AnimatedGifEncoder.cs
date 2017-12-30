@@ -134,17 +134,81 @@ namespace Gif.Components
 		{
 			transparent = c;
 		}
-	
-		/**
+
+        /**
+		 * Manually sets the color palette to use. Useful in cases
+		 * where the entire palette is already know, and can be perfectly
+		 * represented.
+         * 
+		 * @param pal Byte array of color palette in format RBG.
+		 */
+        public void SetColorPalette(byte[] pal)
+        {
+            colorTab = pal;
+        }
+
+        /**
 		 * Adds next GIF frame.  The frame is not written immediately, but is
 		 * actually deferred until the next frame is received so that timing
 		 * data can be inserted.  Invoking <code>finish()</code> flushes all
 		 * frames.  If <code>setSize</code> was not invoked, the size of the
 		 * first image is used for all subsequent frames.
 		 *
-		 * @param im BufferedImage containing frame to write.
+		 * @param indexFrame An array of color table lookup indicies.
 		 * @return true if successful.
 		 */
+        public bool AddFrame(byte[] indexFrame)
+        {
+            if ((indexFrame == null) || !started || !sizeSet || (colorTab == null))
+            {
+                return false;
+            }
+            bool ok = true;
+            try
+            {
+                // store the frame of bytes as the current array of indexed pixels.
+                // this work would usually be done by AnalyzePixels.
+                indexedPixels = indexFrame;
+                
+                colorDepth = 8;
+                palSize = 7;
+                if (firstFrame)
+                {
+                    WriteLSD(); // logical screen descriptior
+                    WritePalette(); // global color table
+                    if (repeat >= 0)
+                    {
+                        // use NS app extension to indicate reps
+                        WriteNetscapeExt();
+                    }
+                }
+                WriteGraphicCtrlExt(); // write graphic control extension
+                WriteImageDesc(); // image descriptor
+                if (!firstFrame)
+                {
+                    WritePalette(); // local color table
+                }
+                WritePixels(); // encode and write pixel data
+                firstFrame = false;
+            }
+            catch (IOException)
+            {
+                ok = false;
+            }
+
+            return ok;
+        }
+	
+        /**
+         * Adds next GIF frame.  The frame is not written immediately, but is
+         * actually deferred until the next frame is received so that timing
+         * data can be inserted.  Invoking <code>finish()</code> flushes all
+         * frames.  If <code>setSize</code> was not invoked, the size of the
+         * first image is used for all subsequent frames.
+         *
+         * @param im BufferedImage containing frame to write.
+         * @return true if successful.
+         */
         public bool AddFrame(Image im)
         {
             if ((im == null) || !started)
