@@ -199,16 +199,16 @@ namespace Gif.Components
             return ok;
         }
 	
-		/**
-		 * Adds next GIF frame.  The frame is not written immediately, but is
-		 * actually deferred until the next frame is received so that timing
-		 * data can be inserted.  Invoking <code>finish()</code> flushes all
-		 * frames.  If <code>setSize</code> was not invoked, the size of the
-		 * first image is used for all subsequent frames.
-		 *
-		 * @param im BufferedImage containing frame to write.
-		 * @return true if successful.
-		 */
+        /**
+         * Adds next GIF frame.  The frame is not written immediately, but is
+         * actually deferred until the next frame is received so that timing
+         * data can be inserted.  Invoking <code>finish()</code> flushes all
+         * frames.  If <code>setSize</code> was not invoked, the size of the
+         * first image is used for all subsequent frames.
+         *
+         * @param im BufferedImage containing frame to write.
+         * @return true if successful.
+         */
         public bool AddFrame(Image im)
         {
             if ((im == null) || !started)
