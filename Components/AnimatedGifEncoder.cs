@@ -1,6 +1,9 @@
 using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
+
 
 #region .NET Disclaimer/Info
 //===============================================================================
@@ -45,6 +48,14 @@ using System.IO;
 /* 
  * Modified by Phil Garcia (phil@thinkedge.com) 
 	1. Add support to output the Gif to a MemoryStream (9/2/2005)
+ 
+*/
+#endregion
+
+#region Modified By Neumann-Kohai
+/* 
+ * Modified By Neumann-Kohai (NGif@neumann-kohai.de) 
+	1. Add modification suggested by Martin Schreiber at https://schreibermartin.wordpress.com/2012/05/09/animated-gif-image-with-c/ (29/3/2020)
  
 */
 #endregion
@@ -111,15 +122,15 @@ namespace Gif.Components
 		 * @param iter int number of iterations.
 		 * @return
 		 */
-		public void SetRepeat(int iter) 
-		{
-			if (iter >= 0) 
-			{
-				repeat = iter;
-			}
-		}
-	
-		/**
+        public void SetRepeat(int iter)
+        {
+            if (iter >= 0)
+            {
+                repeat = iter;
+            }
+        }
+
+        /**
 		 * Sets the transparent color for the last added frame
 		 * and any subsequent frames.
 		 * Since all colors are subject to modification
@@ -130,12 +141,12 @@ namespace Gif.Components
 		 *
 		 * @param c Color to be treated as transparent on display.
 		 */
-		public void SetTransparent(Color c) 
-		{
-			transparent = c;
-		}
-	
-		/**
+        public void SetTransparent(Color c)
+        {
+            transparent = c;
+        }
+
+        /**
 		 * Adds next GIF frame.  The frame is not written immediately, but is
 		 * actually deferred until the next frame is received so that timing
 		 * data can be inserted.  Invoking <code>finish()</code> flushes all
@@ -251,13 +262,13 @@ namespace Gif.Components
 		 * @param quality int greater than 0.
 		 * @return
 		 */
-		public void SetQuality(int quality) 
-		{
-			if (quality < 1) quality = 1;
-			sample = quality;
-		}
-	
-		/**
+        public void SetQuality(int quality)
+        {
+            if (quality < 1) quality = 1;
+            sample = quality;
+        }
+
+        /**
 		 * Sets the GIF frame size.  The default size is the
 		 * size of the first frame added if this method is
 		 * not invoked.
@@ -417,47 +428,75 @@ namespace Gif.Components
         }
 
         /**
-		 * Extracts image pixels into byte array "pixels"
-		 */
-        protected void GetImagePixels()
+* Extracts image pixels into byte array "pixels"
+*/
+        private void GetImagePixels()
         {
             int w = image.Width;
             int h = image.Height;
-            //		int type = image.GetType().;
-            if ((w != width)
-                || (h != height)
-                )
+            if ((w != width) || (h != height))
             {
                 // create new image with right size/format
-                Image temp =
-                    new Bitmap(width, height);
-                Graphics g = Graphics.FromImage(temp);
-                g.DrawImage(image, 0, 0);
-                image = temp;
-                g.Dispose();
-            }
-            /*
-				ToDo:
-				improve performance: use unsafe code 
-			*/
-            pixels = new Byte[3 * image.Width * image.Height];
-            int count = 0;
-            Bitmap tempBitmap = new Bitmap(image);
-            for (int th = 0; th < image.Height; th++)
-            {
-                for (int tw = 0; tw < image.Width; tw++)
+                using (Image temp = new Bitmap(width, height))
                 {
-                    Color color = tempBitmap.GetPixel(tw, th);
-                    pixels[count] = color.R;
-                    count++;
-                    pixels[count] = color.G;
-                    count++;
-                    pixels[count] = color.B;
-                    count++;
+                    using (Graphics g = Graphics.FromImage(temp))
+                    {
+                        g.DrawImage(image, 0, 0);
+                        image = temp;
+                    }
                 }
             }
-
-            //		pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+            //
+            // improved performance
+            Bitmap tempBitmap = (Bitmap)image;
+            BitmapData bitmapData = null;
+            try
+            {
+                bitmapData = tempBitmap.LockBits(
+                      new Rectangle(0, 0, tempBitmap.Width, tempBitmap.Height)
+                    , ImageLockMode.ReadOnly
+                    , PixelFormat.Format24bppRgb
+                    );
+                IntPtr pixelAddress = bitmapData.Scan0;
+                int physicalLineLength = bitmapData.Stride;
+                byte[] sourcePixels
+                    = new byte[physicalLineLength * tempBitmap.Height];
+                Marshal.Copy(
+                      pixelAddress
+                    , sourcePixels
+                    , 0
+                    , sourcePixels.Length
+                    );
+                int sourceIndex = 0;
+                int targetIndex = 0;
+                int logicalLineLength = 3 * tempBitmap.Width;
+                pixels = new Byte[logicalLineLength * tempBitmap.Height];
+                for (int th = 0; th < tempBitmap.Height; th++)
+                {
+                    Array.Copy(
+                          sourcePixels
+                        , sourceIndex
+                        , pixels
+                        , targetIndex
+                        , logicalLineLength
+                        );
+                    sourceIndex += bitmapData.Stride;
+                    targetIndex += logicalLineLength;
+                }
+                for (int tw = 0; tw <= pixels.Length - 3; tw += 3)
+                {
+                    byte tempColor = pixels[tw];
+                    pixels[tw] = pixels[tw + 2];
+                    pixels[tw + 2] = tempColor;
+                }
+            }
+            finally
+            {
+                if (bitmapData != null)
+                {
+                    tempBitmap.UnlockBits(bitmapData);
+                }
+            }
         }
 
         /**
